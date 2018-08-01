@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 # coding: utf8
 """
 A simple example for training a part-of-speech tagger with a custom tag map.
@@ -16,7 +17,7 @@ import plac
 import random
 from pathlib import Path
 import spacy
-
+import pickle
 
 # You need to define a mapping from your data's part-of-speech tag names to the
 # Universal Part-of-Speech tag set, as spaCy includes an enum of these tags.
@@ -35,11 +36,11 @@ TAG_MAP = {
 # tokenization. If not, you can always add a 'words' key to the annotations
 # that specifies the gold-standard tokenization, e.g.:
 # ("Eatblueham", {'words': ['Eat', 'blue', 'ham'] 'tags': ['V', 'J', 'N']})
-TRAIN_DATA = [
-    ("I like green eggs", {'tags': ['N', 'V', 'J', 'N']}),
-    ("Eat blue ham", {'tags': ['V', 'J', 'N']})
-]
+training_file="/home/versionx/Documents/data/crimson48k.0-10d.train.tok.inc.pos.10000.out"
+with open(training_file, 'rb') as f:
+    TRAIN_DATA= pickle.load(f)
 
+#print(TRAIN_DATA)
 
 @plac.annotations(
     lang=("ISO Code of language to use", "option", "l", str),
@@ -50,20 +51,24 @@ def main(lang='en', output_dir='/home/versionx/Documents/models/spacy_pos/', n_i
     train the tagger with a custom tag map, we're creating a new Language
     instance with a custom vocab.
     """
-    nlp = spacy.blank(lang)
+    nlp = spacy.load(lang)
     # add the tagger to the pipeline
     # nlp.create_pipe works for built-ins that are registered with spaCy
-    tagger = nlp.create_pipe('tagger')
+    #tagger = nlp.create_pipe('tagger')
+    nlp.disable_pipes('ner', 'parser')
+    tagger = nlp.get_pipe('tagger')
+
     # Add the tags. This needs to be done before you start training.
-    for tag, values in TAG_MAP.items():
-        tagger.add_label(tag, values)
-    nlp.add_pipe(tagger)
+#    for tag, values in TAG_MAP.items():
+#        tagger.add_label(tag, values)
+#    nlp.add_pipe(tagger)
 
     optimizer = nlp.begin_training()
     for i in range(n_iter):
         random.shuffle(TRAIN_DATA)
         losses = {}
         for text, annotations in TRAIN_DATA:
+           # print(text)
             nlp.update([text], [annotations], sgd=optimizer, losses=losses)
         print(losses)
 
